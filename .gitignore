@@ -1,0 +1,10 @@
+
+# FVM Version Cache
+.fvm/
+
+# Dart
+.dart_tool/
+build/
+*.exe
+
+# results/ is intentionally NOT ignored: benchmark output is the deliverable.

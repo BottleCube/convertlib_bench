@@ -1,0 +1,17 @@
+name: conv_bench
+description: Benchmarks comparing convertlib against dart:convert, package:convert, package:base32 and straightforward hand-written implementations.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  base32: ^2.2.0
+  convert: ^3.1.2
+  convertlib: ^3.6.1
+
+dev_dependencies:
+  benchmark_harness: ^2.4.0
+  lints: ^6.0.0
+  test: ^1.25.0

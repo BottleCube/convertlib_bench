@@ -80,15 +80,31 @@ Apple M3 Pro / macOS 26.5.2 / Dart 3.12.2、**convertlib 同士**で JIT 実行�
 
 ### 全体の傾向
 
-- **decode は全フォーマットで AOT が遅い**(1.2〜3.8 倍)。convertlib の decode 系は
-  JIT のプロファイル最適化に強く依存しており、AOT では素直なコードに負ける。これが
-  AOT 版の要約で decode がほぼ全面的に競合へ逆転された直接の原因
-- **encode は hex を除きほぼ等速**(相対値 0.85〜1.07)。base64 / base64Url / base32 /
+- **decode は全フォーマットで AOT が遅い**(1.2〜3.2 倍)。AOT 版の要約で decode が
+  ほぼ全面的に競合へ逆転された直接の原因はこれである。**ただし理由は特定できて
+  いない**(下記)
+- **encode は hex を除きほぼ等速**(相対値 0.85〜1.08)。base64 / base64Url / base32 /
   binary / octal は JIT でも AOT でも変わらず、convertlib の優位がそのまま残る
-- **utf8 encode と constant_time は AOT の方がわずかに有利**。特に utf8 encode の
-  ASCII 64 KiB(0.83)と絵文字 64 KiB(0.79)は AOT が 1.2〜1.3 倍速い
-- **bigint は両方向とも AOT で 1.2〜1.6 倍遅い**。`BigInt` 演算自体のコストが AOT で
-  上がっており、手書き実装との差(AOT で 2.4 倍)を広げる要因になっている
+- **utf8 encode は ASCII と絵文字で AOT が有利**。64 KiB で ASCII 0.83、絵文字 0.79 と
+  AOT が 1.2〜1.3 倍速い。一方で日本語は 1.16〜1.18 と逆になる
+- **constant_time は差なし**(0.95〜1.03)。`Uint8List` を舐めるだけのループで、
+  JIT・AOT どちらでも同じコードに落ちていると見られる
+- **bigint は convertlib が両方向とも AOT で 1.2〜1.6 倍遅い**。ただし方向で事情が
+  違う。decode(`BigInt` → バイト列)は手書きも 1.3〜1.5 倍劣化するので `BigInt`
+  ランタイム側の要因と考えられるが、encode(バイト列 → `BigInt`)は手書きが
+  0.94〜0.99 と劣化しないため convertlib 側の要因である
+
+### decode が AOT で遅い理由について
+
+当初この文書には「convertlib の decode 系は JIT のプロファイル最適化に強く依存して
+おり、AOT では素直なコードに負ける」と書いていたが、**この説明は実験で否定された**。
+受け手の型を実体化した `Uint8List` に固定しても、リンク集合を変えても、仮想呼び出しを
+外しても劣化は再現せず、投機的最適化の有無では説明できない挙動
+(同一ソースでも依存パッケージ側にあると 2.3 倍遅い、プログラム規模で 2 倍振れる)に
+行き着いている。
+
+現時点で**原因は未特定**である。経緯と最小再現は
+[aot-gap-investigation.md](aot-gap-investigation.md) を参照。
 
 ### 再現性の確認
 
